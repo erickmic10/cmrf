@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Apuração</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; background-color: #333; color: white; }
+        .container { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; padding: 20px; }
+        .vereador { width: 200px; background: #222; padding: 10px; border-radius: 8px; text-align: center; }
+        .vereador img { width: 80px; height: 80px; border-radius: 50%; }
+        .info { font-size: 16px; font-weight: bold; margin-top: 5px; }
+        .presenca { margin-top: 5px; font-size: 18px; }
+        .circulo { width: 40px; height: 40px; border-radius: 10%; background: white; margin: 8px auto; transition: background 0.3s; }
+        .sim { background-color: green !important; }
+        .nao { background-color: red !important; }
+        .abstencao { background-color: yellow !important; }
+        .voto-info { font-size: 17px; margin-top: 5px; }
+        /* Estilização do resultado */
+        .resultado-container { margin-top: 30px; font-size: 25px; }
+        .resultado-final { display: inline-block; padding: 5px 10px; border-radius: 5px; font-size: 60px; font-weight: bold; }
+        .aprovado { background-color: green; color: white; }
+        .reprovado { background-color: red; color: white; }
+        .empate { background-color: yellow; color: black; }
+
+        .botao-atualizar { margin-top: 20px; padding: 10px; font-size: 18px; cursor: pointer; background: gray; color: white; border: none; border-radius: 5px; }
+        .botao-atualizar:hover { background: darkgray; }
+
+        /* Estilização da tabela */
+        .tabela-votos { margin: 20px auto; width: 60%; border-collapse: collapse; }
+        .tabela-votos td { padding: 10px; text-align: center; font-size: 26px; font-weight: bold; border: 1px solid white; }
+        .sim-cell { background-color: #1000; }
+        .nao-cell { background-color: #1000; }
+        .abstencao-cell { background-color: #1000;} /*altera cor*/
+    </style>
+</head>
+<body>
+    <h2>PAINEL DE VOTAÇÃO</h2>
+    <div class="container" id="painel"></div>
+
+    <!-- Tabela de totais -->
+    <table class="tabela-votos">
+        <tr>
+            <td class="sim-cell">✅ SIM: <span id="total-sim">0</span></td>
+            <td class="nao-cell">❌ NÃO: <span id="total-nao">0</span></td>
+            <td class="abstencao-cell">⚠️ ABST: <span id="total-abstencao">0</span></td>
+        </tr>
+    </table>
+
+    <div id="resultado-final" class="resultado-final">Aguardando votação...</div>
+    <br><br>
+    <button class="botao-atualizar" onclick="atualizarPainel()">🔄</button>
+    <a href="votacao.html" style="color: white; text-decoration: none; font-size: 20px;">🔙</a>
+
+    <script>
+        const vereadores = [
+            { nome: "Miliano Barbosa", partido: "PP", foto: "imagens/miliano.png" },
+            { nome: "Meyre Bezerra", partido: "PL", foto: "imagens/meyre.png" },
+            { nome: "Ewerton Victor", partido: "PP", foto: "imagens/ewerton.png" },
+            { nome: "Minervanio Menezes", partido: "PP", foto: "imagens/minervanio.png" },
+            { nome: "Renato Junior", partido: "PL", foto: "imagens/renato.png" },
+            { nome: "Erinaide Negreiros", partido: "PL", foto: "imagens/erinaide.png" },
+            { nome: "Ruan Rodrigo", partido: "PP", foto: "imagens/ruan.png" },
+            { nome: "Patricia Gurgel", partido: "PP", foto: "imagens/patricia.png" },
+            { nome: "Estefani Cavalcante", partido: "PL", foto: "imagens/estefani.png" }
+        ];
+        
+        function carregarPainel() {
+            const painel = document.getElementById("painel");
+            painel.innerHTML = "";
+            let votos = JSON.parse(localStorage.getItem("votos")) || {};
+
+            vereadores.forEach(({ nome, partido, foto }) => {
+                const div = document.createElement("div");
+                div.className = "vereador";
+                const voto = votos[nome] ? votos[nome].toUpperCase() : "Aguardando...";
+                div.innerHTML = `
+                    <img src="${foto}" alt="${nome}">
+                    <div class="info">${nome} - ${partido}</div>
+                    <div class="voto-info">Voto: ${voto}</div>
+                    <div class="circulo ${votos[nome] || ''}" id="circulo-${nome}"></div>
+                `;
+                painel.appendChild(div);
+            });
+        }
+
+        window.onload = carregarPainel;
+        setInterval(carregarPainel, 1000);
+
+        let votos = JSON.parse(localStorage.getItem("votos")) || {};
+        function atualizarVotacao() {
+            vereadores.forEach(({ nome }) => {
+                const votoElemento = document.getElementById(`voto-${nome}`);
+                if (votoElemento) {
+                    votoElemento.textContent = votos[nome] ? `Voto: ${votos[nome].toUpperCase()}` : "Ainda não votou";
+                }
+            });
+        }
+        function carregarVotacao() {
+            const votacao = document.getElementById("votacao");
+            votacao.innerHTML = "";
+            vereadores.forEach(({ nome, partido, foto }) => {
+                const div = document.createElement("div");
+                div.className = "vereador";
+                div.innerHTML = `
+                    <img src="${foto}" alt="${nome}">
+                    <div class="partido">${partido}</div>
+                    <div class="voto" id="voto-${nome}">${votos[nome] ? `Votou ${votos[nome].toUpperCase()}` : "Ainda não votou"}</div>
+                    <div class="presenca">
+                        <label><input type="checkbox" onchange="marcarPresenca('${nome}', this)" ${presenca[nome] ? "checked" : ""}> Presente</label>
+                    </div>
+                    <div class="botoes">
+                        <button class="sim" onclick="votar('${nome}', 'sim')">✔️ SIM</button>
+                        <button class="nao" onclick="votar('${nome}', 'nao')">❌ NÃO</button>
+                        <button class="abstencao" onclick="votar('${nome}', 'abstencao')">⚠️ ABSTENÇÃO</button>
+                    </div>
+                `;
+                votacao.appendChild(div);
+            });
+        }
+
+        function atualizarPainel() {
+    let votos = JSON.parse(localStorage.getItem("votos")) || {};
+    let presenca = JSON.parse(localStorage.getItem("presenca")) || {};
+
+    let totalSim = 0, totalNao = 0, totalAbstencao = 0, totalPresentes = 0, totalVotaram = 0;
+
+    vereadores.forEach(({ nome }) => {
+        const circulo = document.getElementById(`circulo-${nome}`);
+        circulo.className = "circulo";
+
+        if (presenca[nome]) {
+            totalPresentes++;
+        }
+
+        if (votos[nome]) {
+            circulo.classList.add(votos[nome]);
+            totalVotaram++;
+
+            if (votos[nome] === "sim") totalSim++;
+            if (votos[nome] === "nao") totalNao++;
+            if (votos[nome] === "abstencao") totalAbstencao++;
+        }
+
+        const presencaSpan = document.getElementById(`presenca-${nome}`);
+        presencaSpan.textContent = presenca[nome] ? "Presente ✔️" : "Ausente 🚫";
+    });
+
+    document.getElementById("total-sim").textContent = totalSim;
+    document.getElementById("total-nao").textContent = totalNao;
+    document.getElementById("total-abstencao").textContent = totalAbstencao;
+
+    let resultadoFinal = document.getElementById("resultado-final");
+    resultadoFinal.className = "resultado-final";
+    resultadoFinal.textContent = "Aguardando votos...";
+
+    // Verifica se todos os presentes votaram
+    if (totalVotaram === totalPresentes) {
+        const votosValidos = totalSim + totalNao;
+        const maioriaAbsoluta = Math.floor(totalPresentes / 2) + 1;
+
+        if (totalSim >= maioriaAbsoluta) {
+            resultadoFinal.textContent = "✅ APROVADO";
+            resultadoFinal.classList.add("aprovado");
+        } else if (totalNao >= maioriaAbsoluta || totalSim < maioriaAbsoluta) {
+            resultadoFinal.textContent = "❌ REPROVADO";
+            resultadoFinal.classList.add("reprovado");
+        } else {
+            resultadoFinal.textContent = "⚠️ EMPATE";
+            resultadoFinal.classList.add("empate");
+        }
+    }
+}
+
+
+        function carregarPainel() {
+            const painel = document.getElementById("painel");
+            painel.innerHTML = "";
+            let votos = JSON.parse(localStorage.getItem("votos")) || {};
+
+            vereadores.forEach(({ nome, partido, foto }) => {
+                const div = document.createElement("div");
+                div.className = "vereador";
+                const voto = votos[nome] ? votos[nome].toUpperCase() : "Aguardando...";                
+                div.innerHTML = `
+                    <img src="${foto}" alt="${nome}">
+                    <div class="info">${nome} - ${partido}</div>
+                    <div class="presenca" id="presenca-${nome}">Aguardando...</div>
+                    <div class="voto-info">Voto: ${voto}</div>                    
+                    <div class="circulo" id="circulo-${nome}"></div>
+                `;
+                painel.appendChild(div);
+            });
+            atualizarPainel();
+            setInterval(atualizarPainel, 1000);
+        }
+        window.onload = carregarVotacao;
+        window.onload = carregarPainel;
+    </script>
+</body>
+</html>
